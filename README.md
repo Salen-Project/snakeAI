@@ -33,6 +33,18 @@ An advanced, unbeatable Snake game implementation featuring three sophisticated 
   - Real-time statistics and scoring
   - Strategy switching without restart
 
+## 📊 Project Logic & Architecture
+
+Want to understand how the AI strategies work? Check out our **interactive whiteboard** with detailed logic diagrams and flowcharts:
+
+🎨 **[View Project Whiteboard on Excalidraw](https://link.excalidraw.com/l/874WKGJNL4h/8zbg1HOVKrp)**
+
+This whiteboard includes:
+- Visual flowcharts of all three AI strategies
+- Decision-making process diagrams
+- Pathfinding algorithm explanations
+- Backtracking logic visualization
+
 ## 🚀 Quick Start
 
 ### Prerequisites
