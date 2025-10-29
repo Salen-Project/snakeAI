@@ -10,7 +10,10 @@ An advanced, unbeatable Snake game implementation featuring three sophisticated 
 
 Watch the AI in action! This video showcases all three strategies with real-time visualization:
 
-https://github.com/Salen-Project/snakeAI/assets/SnakeDemo.mov
+**[📹 Download Demo Video (66MB)](https://github.com/Salen-Project/snakeAI/raw/main/SnakeDemo.mov)**
+
+Or view it directly in the repository:
+**[View SnakeDemo.mov](https://github.com/Salen-Project/snakeAI/blob/main/SnakeDemo.mov)**
 
 > **Note**: The left board shows AI thinking/pathfinding, while the right board shows actual gameplay.
 
