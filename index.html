@@ -367,6 +367,16 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
         }
+
+        #strategy-select {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -377,11 +387,11 @@
                 <h2>AI Thinking Board</h2>
                 <div class="board-status" id="premove-status">Calculating...</div>
                 <div class="premove-info" id="premove-info">Depth: 0 / Attempts: 0</div>
-                </div>
+            </div>
             <div class="game-board">
                 <div class="board premove-board" id="premove-board"></div>
-                </div>
             </div>
+        </div>
 
         <!-- Right Board - Actual Game -->
         <div class="board-section">
@@ -392,13 +402,13 @@
                     <div class="score-item">Score: <span id="current-score">0</span></div>
                     <div class="score-item">Length: <span id="snake-length">1</span></div>
                     <div class="score-item">High: <span id="high-score">0</span></div>
+                </div>
             </div>
-        </div>
             <div class="game-board">
                 <div class="board actual-board" id="actual-board"></div>
             </div>
         </div>
-            </div>
+    </div>
 
     <!-- Controls -->
     <div class="controls-section">
@@ -408,26 +418,54 @@
             </div>
 
         <div class="slider-control">
-            <label>Speed:</label>
-            <input type="range" id="speed-slider" min="50" max="1000" value="500" step="50">
+            <label for="speed-slider">Speed:</label>
+            <input
+                type="range"
+                id="speed-slider"
+                min="50"
+                max="1000"
+                value="500"
+                step="50"
+                title="Adjust game speed (ms between moves)"
+                aria-label="Speed"
+            >
             <span id="speed-value">500ms</span>
-            </div>
-
-        <div class="slider-control">
-            <label>Lookahead:</label>
-            <input type="range" id="depth-slider" min="1" max="100" value="10" step="1">
-            <span id="depth-value">10</span>
-            </div>
-
-        <div class="slider-control">
-            <label>Visual Speed:</label>
-            <input type="range" id="visual-slider" min="0" max="100" value="50" step="10">
-            <span id="visual-value">50ms</span>
         </div>
 
         <div class="slider-control">
-            <label>Strategy:</label>
-            <select id="strategy-select" style="padding: 8px 15px; border-radius: 8px; border: 2px solid #667eea; background: white; color: #667eea; font-weight: 600; cursor: pointer;">
+            <label for="depth-slider" title="Lookahead (moves)">Lookahead:</label>
+            <input
+                type="range"
+                id="depth-slider"
+                min="1"
+                max="100"
+                value="10"
+                step="1"
+                title="Set lookahead depth"
+                aria-label="Lookahead"
+            >
+            <span id="depth-value">10</span>
+        </div>
+        <div class="slider-control">
+            <label for="visual-slider" title="Animation speed in ms">Visual Speed:</label>
+            <input
+                type="range"
+                id="visual-slider"
+                min="0"
+                max="100"
+                value="50"
+                step="10"
+                title="Set the visual animation speed"
+                aria-label="Visual Speed"
+            >
+            <span id="visual-value">50ms</span>
+        </div>
+        <div class="slider-control">
+            <label for="strategy-select" title="AI Strategy">Strategy:</label>
+            <select id="strategy-select" name="strategy-select"
+                title="Select AI strategy"
+                aria-label="Strategy"
+            >
                 <option value="instinct">Instinct + Backtracking</option>
                 <option value="hamiltonian">Hamiltonian Cycle (Unbeatable)</option>
                 <option value="forward-checking" selected>Forward Checking + A* (Optimal)</option>
