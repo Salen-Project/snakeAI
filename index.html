@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Snake Game - Dual Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1600px;
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        .board-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px 40px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .board-header h2 {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .board-header.premove-header h2 {
+            color: #f59e0b;
+        }
+
+        .board-status {
+            font-size: 18px;
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+
+        .score-info {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .score-item {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .game-board {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            grid-template-rows: repeat(10, 50px);
+            gap: 2px;
+            background: #e0e7ff;
+            padding: 10px;
+            border-radius: 15px;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Snake styles for actual game */
+        .cell.snake {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+            animation: pulse 0.3s ease-out;
+        }
+
+        .cell.snake-head {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+            transform: scale(1.05);
+        }
+
+        /* Snake styles for premove board */
+        .premove-board .cell.snake {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.5);
+        }
+
+        .premove-board .cell.snake-head {
+            background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+            box-shadow: 0 6px 20px rgba(251, 146, 60, 0.6);
+        }
+
+        /* Ghost snake for premove visualization */
+        .cell.ghost-snake {
+            background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
+            opacity: 0.5;
+        }
+
+        .cell.ghost-head {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            opacity: 0.7;
+        }
+
+        .cell.snake-head::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .cell.fruit {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            box-shadow: 0 6px 20px rgba(250, 112, 154, 0.6);
+            animation: bounce 0.5s ease-in-out;
+            font-size: 30px;
+        }
+
+        /* Flash animations */
+        @keyframes flash-success {
+            0%, 100% { background: white; }
+            50% { background: #10b981; }
+        }
+
+        @keyframes flash-error {
+            0%, 100% { background: white; }
+            50% { background: #ef4444; }
+        }
+
+        .cell.flash-success {
+            animation: flash-success 0.5s ease;
+        }
+
+        .cell.flash-error {
+            animation: flash-error 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .controls-section {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-control label {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .slider-control input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .slider-control span {
+            min-width: 60px;
+            text-align: right;
+            font-weight: 600;
+            color: #764ba2;
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .game-over-overlay.show {
+            display: flex;
+        }
+
+        .game-over-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 60px;
+            text-align: center;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .game-over-content h2 {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+
+        .game-over-content.victory h2 {
+            color: #10b981;
+        }
+
+        .game-over-content p {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .premove-info {
+            font-size: 14px;
+            color: #f59e0b;
+            margin-top: 5px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #e0e7ff;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Board - Premove Visualization -->
+        <div class="board-section">
+            <div class="board-header premove-header">
+                <h2>AI Thinking Board</h2>
+                <div class="board-status" id="premove-status">Calculating...</div>
+                <div class="premove-info" id="premove-info">Depth: 0 / Attempts: 0</div>
+                </div>
+            <div class="game-board">
+                <div class="board premove-board" id="premove-board"></div>
+                </div>
+            </div>
+
+        <!-- Right Board - Actual Game -->
+        <div class="board-section">
+            <div class="board-header">
+                <h2>Actual Game</h2>
+                <div class="board-status" id="game-status">Ready to Start</div>
+                <div class="score-info">
+                    <div class="score-item">Score: <span id="current-score">0</span></div>
+                    <div class="score-item">Length: <span id="snake-length">1</span></div>
+                    <div class="score-item">High: <span id="high-score">0</span></div>
+            </div>
+        </div>
+            <div class="game-board">
+                <div class="board actual-board" id="actual-board"></div>
+            </div>
+        </div>
+            </div>
+
+    <!-- Controls -->
+    <div class="controls-section">
+            <div class="controls">
+                <button class="btn btn-primary" id="start-btn" onclick="startGame()">Start Game</button>
+                <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()" disabled>Pause</button>
+            </div>
+
+        <div class="slider-control">
+            <label>Speed:</label>
+            <input type="range" id="speed-slider" min="50" max="1000" value="500" step="50">
+            <span id="speed-value">500ms</span>
+            </div>
+
+        <div class="slider-control">
+            <label>Lookahead:</label>
+            <input type="range" id="depth-slider" min="1" max="100" value="10" step="1">
+            <span id="depth-value">10</span>
+            </div>
+
+        <div class="slider-control">
+            <label>Visual Speed:</label>
+            <input type="range" id="visual-slider" min="0" max="100" value="50" step="10">
+            <span id="visual-value">50ms</span>
+        </div>
+
+        <div class="slider-control">
+            <label>Strategy:</label>
+            <select id="strategy-select" style="padding: 8px 15px; border-radius: 8px; border: 2px solid #667eea; background: white; color: #667eea; font-weight: 600; cursor: pointer;">
+                <option value="instinct">Instinct + Backtracking</option>
+                <option value="hamiltonian">Hamiltonian Cycle (Unbeatable)</option>
+                <option value="forward-checking" selected>Forward Checking + A* (Optimal)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="game-over-overlay" id="game-over-overlay">
+        <div class="game-over-content" id="game-over-content">
+            <h2 id="game-over-title">Game Over!</h2>
+            <p id="game-over-message">Final Score: 0</p>
+            <button class="btn btn-primary" onclick="restartGame()">Restart Game</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants
+        const BOARD_SIZE = 10;
+        const DIRECTIONS = {
+            UP: { x: 0, y: -1, opposite: 'DOWN' },
+            DOWN: { x: 0, y: 1, opposite: 'UP' },
+            LEFT: { x: -1, y: 0, opposite: 'RIGHT' },
+            RIGHT: { x: 1, y: 0, opposite: 'LEFT' }
+        };
+
+        // Helper function to wrap coordinates (toroidal topology)
+        function wrapCoordinate(coord, max) {
+            if (coord < 0) return max - 1;
+            if (coord >= max) return 0;
+            return coord;
+        }
+
+        // Generate Hamiltonian Cycle using zigzag pattern
+        function generateHamiltonianCycle() {
+            const path = [];
+            
+            // Create a zigzag pattern that visits all cells
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                if (y % 2 === 0) {
+                    // Even rows: go left to right
+                    for (let x = 0; x < BOARD_SIZE; x++) {
+                        path.push({ x, y });
+                    }
+                } else {
+                    // Odd rows: go right to left
+                    for (let x = BOARD_SIZE - 1; x >= 0; x--) {
+                        path.push({ x, y });
+                    }
+                }
+            }
+            
+            gameState.hamiltonianPath = path;
+            console.log('Hamiltonian Cycle generated with', path.length, 'cells');
+        }
+
+        // A* Pathfinding Algorithm
+        function aStar(start, goal, obstacles = []) {
+            const openSet = [start];
+            const closedSet = new Set();
+            const cameFrom = new Map();
+            const gScore = new Map();
+            const fScore = new Map();
+            
+            const key = (pos) => `${pos.x},${pos.y}`;
+            const heuristic = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+            
+            gScore.set(key(start), 0);
+            fScore.set(key(start), heuristic(start, goal));
+            
+            while (openSet.length > 0) {
+                // Get node with lowest fScore
+                openSet.sort((a, b) => {
+                    const fA = fScore.get(key(a)) || Infinity;
+                    const fB = fScore.get(key(b)) || Infinity;
+                    return fA - fB;
+                });
+                
+                const current = openSet.shift();
+                
+                if (current.x === goal.x && current.y === goal.y) {
+                    // Reconstruct path
+                    const path = [];
+                    let temp = current;
+                    while (cameFrom.has(key(temp))) {
+                        path.unshift(temp);
+                        temp = cameFrom.get(key(temp));
+                    }
+                    return path;
+                }
+                
+                closedSet.add(key(current));
+                
+                // Check all neighbors
+                const directions = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
+                for (const dir of directions) {
+                    const neighbor = {
+                        x: wrapCoordinate(current.x + dir.x, BOARD_SIZE),
+                        y: wrapCoordinate(current.y + dir.y, BOARD_SIZE)
+                    };
+                    
+                    const neighborKey = key(neighbor);
+                    
+                    // Skip if in closed set or is an obstacle
+                    if (closedSet.has(neighborKey)) continue;
+                    if (obstacles.some(obs => obs.x === neighbor.x && obs.y === neighbor.y)) continue;
+                    
+                    const tentativeGScore = (gScore.get(key(current)) || 0) + 1;
+                    
+                    // Add to open set if not already there
+                    if (!openSet.some(n => n.x === neighbor.x && n.y === neighbor.y)) {
+                        openSet.push(neighbor);
+                    } else if (tentativeGScore >= (gScore.get(neighborKey) || Infinity)) {
+                        continue;
+                    }
+                    
+                    // This path is the best so far
+                    cameFrom.set(neighborKey, current);
+                    gScore.set(neighborKey, tentativeGScore);
+                    fScore.set(neighborKey, tentativeGScore + heuristic(neighbor, goal));
+                }
+            }
+            
+            return null; // No path found
+        }
+
+        // BFS Pathfinding (simpler alternative to A*)
+        function bfs(start, goal, obstacles = []) {
+            const queue = [[start]];
+            const visited = new Set();
+            const key = (pos) => `${pos.x},${pos.y}`;
+            
+            visited.add(key(start));
+            
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+                
+                if (current.x === goal.x && current.y === goal.y) {
+                    return path.slice(1); // Return path without start position
+                }
+                
+                const directions = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
+                for (const dir of directions) {
+                    const next = {
+                        x: wrapCoordinate(current.x + dir.x, BOARD_SIZE),
+                        y: wrapCoordinate(current.y + dir.y, BOARD_SIZE)
+                    };
+                    
+                    const nextKey = key(next);
+                    if (visited.has(nextKey)) continue;
+                    if (obstacles.some(obs => obs.x === next.x && obs.y === next.y)) continue;
+                    
+                    visited.add(nextKey);
+                    queue.push([...path, next]);
+                }
+            }
+            
+            return null; // No path found
+        }
+
+        // Game State
+        let gameState = {
+            // Actual game state
+            actualSnake: [],
+            actualDirection: null,
+            fruit: null,
+            score: 0,
+            highScore: parseInt(localStorage.getItem('snakeHighScore')) || 0,
+            
+            // Premove state
+            premoveSnake: [],
+            premoveDirection: null,
+            premoveAttempts: 0,
+            currentDepth: 0,
+            
+            // Game control
+            isRunning: false,
+            isPaused: false,
+            gameSpeed: 500,
+            lookaheadDepth: 10,
+            visualDelay: 50,
+            strategy: 'forward-checking', // 'instinct', 'hamiltonian', or 'forward-checking'
+            
+            // Boards
+            actualBoard: [],
+            premoveBoard: [],
+            
+            // Hamiltonian Cycle
+            hamiltonianPath: [],
+            currentPathIndex: 0
+        };
+
+        let gameInterval = null;
+        let premoveAnimation = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeBoards();
+            updateHighScore();
+            generateHamiltonianCycle(); // Pre-generate the cycle
+
+            document.getElementById('speed-slider').addEventListener('input', (e) => {
+                gameState.gameSpeed = parseInt(e.target.value);
+                document.getElementById('speed-value').textContent = `${e.target.value}ms`;
+            });
+
+            document.getElementById('depth-slider').addEventListener('input', (e) => {
+                gameState.lookaheadDepth = parseInt(e.target.value);
+                document.getElementById('depth-value').textContent = e.target.value;
+            });
+
+            document.getElementById('visual-slider').addEventListener('input', (e) => {
+                gameState.visualDelay = parseInt(e.target.value);
+                document.getElementById('visual-value').textContent = `${e.target.value}ms`;
+            });
+
+            document.getElementById('strategy-select').addEventListener('change', (e) => {
+                gameState.strategy = e.target.value;
+                if (gameState.strategy === 'hamiltonian' && gameState.hamiltonianPath.length === 0) {
+                    generateHamiltonianCycle();
+                }
+            });
+        });
+
+        function initializeBoards() {
+            const actualBoard = document.getElementById('actual-board');
+            const premoveBoard = document.getElementById('premove-board');
+            
+            actualBoard.innerHTML = '';
+            premoveBoard.innerHTML = '';
+
+            gameState.actualBoard = [];
+            gameState.premoveBoard = [];
+
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                gameState.actualBoard[y] = [];
+                gameState.premoveBoard[y] = [];
+                
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    // Actual board cell
+                    const actualCell = document.createElement('div');
+                    actualCell.className = 'cell';
+                    actualCell.dataset.x = x;
+                    actualCell.dataset.y = y;
+                    actualBoard.appendChild(actualCell);
+                    gameState.actualBoard[y][x] = actualCell;
+
+                    // Premove board cell
+                    const premoveCell = document.createElement('div');
+                    premoveCell.className = 'cell';
+                    premoveCell.dataset.x = x;
+                    premoveCell.dataset.y = y;
+                    premoveBoard.appendChild(premoveCell);
+                    gameState.premoveBoard[y][x] = premoveCell;
+                }
+            }
+        }
+
+        function resetGame() {
+            // Clear intervals
+            if (gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            }
+            if (premoveAnimation) {
+                clearInterval(premoveAnimation);
+                premoveAnimation = null;
+            }
+
+            // Reset game state - Start with no direction to allow any initial move
+            gameState.actualSnake = [{ x: 5, y: 5 }];
+            gameState.actualDirection = null;  // Allow any initial direction
+            gameState.score = 0;
+            gameState.isRunning = false;
+            gameState.isPaused = false;
+            gameState.premoveAttempts = 0;
+            gameState.currentPathIndex = 0;
+
+            // Clear boards
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    gameState.actualBoard[y][x].className = 'cell';
+                    gameState.actualBoard[y][x].textContent = '';
+                    gameState.premoveBoard[y][x].className = 'cell';
+                    gameState.premoveBoard[y][x].textContent = '';
+                }
+            }
+
+            // Place initial snake
+            renderSnake(gameState.actualSnake, gameState.actualBoard);
+
+            // Spawn fruit
+            spawnFruit();
+            
+            // Sync premove board
+            syncPremoveBoard();
+
+            // Update UI
+            updateScore();
+            updateStatus('Ready to Start');
+            updatePremoveStatus('Waiting...');
+
+            // Reset buttons
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
+        }
+
+        function syncPremoveBoard() {
+            // Clear premove board
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    gameState.premoveBoard[y][x].className = 'cell';
+                    gameState.premoveBoard[y][x].textContent = '';
+                    gameState.premoveBoard[y][x].style.backgroundColor = ''; // Clear inline styles
+                }
+            }
+
+            // Copy actual snake to premove
+            gameState.premoveSnake = gameState.actualSnake.map(seg => ({ ...seg }));
+            gameState.premoveDirection = gameState.actualDirection;
+            
+            // Render on premove board
+            renderSnake(gameState.premoveSnake, gameState.premoveBoard);
+            
+            // Render fruit on premove board
+            if (gameState.fruit) {
+                gameState.premoveBoard[gameState.fruit.y][gameState.fruit.x].classList.add('fruit');
+                gameState.premoveBoard[gameState.fruit.y][gameState.fruit.x].textContent = '🍎';
+            }
+        }
+
+        function spawnFruit() {
+            const freeCells = [];
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    if (!isSnakeAt(x, y, gameState.actualSnake)) {
+                        freeCells.push({ x, y });
+                    }
+                }
+            }
+
+            if (freeCells.length === 0) {
+                // Victory condition
+                endGame(true);
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * freeCells.length);
+            gameState.fruit = freeCells[randomIndex];
+
+            // Render fruit on both boards
+            gameState.actualBoard[gameState.fruit.y][gameState.fruit.x].classList.add('fruit');
+            gameState.actualBoard[gameState.fruit.y][gameState.fruit.x].textContent = '🍎';
+            gameState.premoveBoard[gameState.fruit.y][gameState.fruit.x].classList.add('fruit');
+            gameState.premoveBoard[gameState.fruit.y][gameState.fruit.x].textContent = '🍎';
+        }
+
+        function isSnakeAt(x, y, snake) {
+            return snake.some(segment => segment.x === x && segment.y === y);
+        }
+
+        function renderSnake(snake, board) {
+            // Clear all snake cells on this board
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    board[y][x].classList.remove('snake', 'snake-head', 'ghost-snake', 'ghost-head');
+                }
+            }
+
+            // Render snake body
+            for (let i = snake.length - 1; i > 0; i--) {
+                const segment = snake[i];
+                board[segment.y][segment.x].classList.add('snake');
+            }
+
+            // Render snake head
+            if (snake.length > 0) {
+                const head = snake[0];
+                board[head.y][head.x].classList.add('snake', 'snake-head');
+            }
+        }
+
+        function startGame() {
+            resetGame();
+            gameState.isRunning = true;
+            updateStatus('AI Playing...');
+            updatePremoveStatus('Starting...');
+
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('pause-btn').disabled = false;
+
+            // Start the game loop
+            gameLoop();
+        }
+
+        function togglePause() {
+            gameState.isPaused = !gameState.isPaused;
+
+            if (gameState.isPaused) {
+                updateStatus('Paused');
+                document.getElementById('pause-btn').textContent = 'Resume';
+            } else {
+                updateStatus('AI Playing...');
+                document.getElementById('pause-btn').textContent = 'Pause';
+                gameLoop();
+            }
+        }
+
+        async function gameLoop() {
+            if (!gameState.isRunning || gameState.isPaused) return;
+
+            let result;
+            
+            // Choose strategy
+            if (gameState.strategy === 'hamiltonian') {
+                result = await findHamiltonianMove();
+            } else if (gameState.strategy === 'forward-checking') {
+                result = await findForwardCheckingMove();
+            } else {
+                result = await findOptimalMoveWithVisualization();
+            }
+
+            if (!result.success) {
+                updatePremoveStatus('No valid moves! Trapped!');
+                endGame(false);
+                return;
+            }
+
+            // Execute the moves
+            if (result.movesToExecute.length > 1) {
+                // Execute all moves if fruit was found
+                await executeMultipleMoves(result.movesToExecute);
+            } else {
+                // Execute single move
+                executeMove(result.movesToExecute[0], gameState.actualSnake, gameState.actualBoard);
+                
+                // Update actual direction
+                gameState.actualDirection = result.movesToExecute[0];
+            }
+
+            // Check for game over - only self collision now (no wall collision)
+            const head = gameState.actualSnake[0];
+            if (isSnakeAt(head.x, head.y, gameState.actualSnake.slice(1))) {
+                endGame(false);
+                return;
+            }
+
+            // Continue game loop
+            setTimeout(() => gameLoop(), gameState.gameSpeed);
+        }
+
+        async function findForwardCheckingMove() {
+            syncPremoveBoard();
+            updatePremoveStatus('A* Pathfinding with Forward Checking...');
+
+            const head = gameState.actualSnake[0];
+            const tail = gameState.actualSnake[gameState.actualSnake.length - 1];
+            
+            // Step 1: Find shortest path to fruit using A*
+            const pathToFruit = aStar(head, gameState.fruit, gameState.actualSnake.slice(1));
+            
+            if (pathToFruit && pathToFruit.length > 0) {
+                // Step 2: Simulate eating the fruit
+                const simulatedSnake = [...gameState.actualSnake];
+                
+                // Move snake along the path to fruit
+                for (const pos of pathToFruit) {
+                    simulatedSnake.unshift(pos);
+                    // Don't remove tail when we reach fruit (snake grows)
+                    if (pos.x !== gameState.fruit.x || pos.y !== gameState.fruit.y) {
+                        simulatedSnake.pop();
+                    }
+                }
+                
+                // Step 3: Check if snake can still reach its tail after eating
+                const newHead = simulatedSnake[0];
+                const newTail = simulatedSnake[simulatedSnake.length - 1];
+                const obstacles = simulatedSnake.slice(0, -1); // All body except tail
+                
+                const pathToTail = bfs(newHead, newTail, obstacles);
+                
+                if (pathToTail) {
+                    // Safe to take the shortest path to fruit
+                    updatePremoveStatus('Path is safe! Taking shortest route to fruit');
+                    
+                    // Visualize the path
+                    await visualizePathOnPremoveBoard(pathToFruit, 'success');
+                    
+                    // Convert first step to direction
+                    const firstStep = pathToFruit[0];
+                    const direction = getDirectionFromStep(head, firstStep);
+                    
+                    return { success: true, movesToExecute: [direction] };
+                } else {
+                    updatePremoveStatus('Shortest path unsafe - Moving toward tail');
+                }
+            } else {
+                updatePremoveStatus('No path to fruit - Moving toward tail');
+            }
+            
+            // Step 4: Fallback - Move toward tail using longest path
+            const pathToTail = findLongestPath(head, tail, gameState.actualSnake.slice(1, -1));
+            
+            if (pathToTail && pathToTail.length > 0) {
+                // Visualize the fallback path
+                await visualizePathOnPremoveBoard(pathToTail.slice(0, 5), 'fallback');
+                
+                const firstStep = pathToTail[0];
+                const direction = getDirectionFromStep(head, firstStep);
+                
+                updatePremoveStatus(`Following tail (safe move: ${direction.name})`);
+                return { success: true, movesToExecute: [direction] };
+            }
+            
+            // Last resort: find any valid move
+            const emergencyMove = findEmergencyMove();
+            if (emergencyMove) {
+                updatePremoveStatus(`Emergency move: ${emergencyMove.name}`);
+                return { success: true, movesToExecute: [emergencyMove] };
+            }
+            
+            return { success: false, movesToExecute: [] };
+        }
+
+        // Find longest path to tail (to buy time)
+        function findLongestPath(start, goal, obstacles) {
+            // Use BFS to find all paths, then return longest
+            const queue = [[start]];
+            const visited = new Map();
+            const key = (pos) => `${pos.x},${pos.y}`;
+            let longestPath = null;
+            
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+                const currentKey = key(current);
+                
+                // Skip if we've visited this with a longer path
+                if (visited.has(currentKey) && visited.get(currentKey) >= path.length) {
+                    continue;
+                }
+                visited.set(currentKey, path.length);
+                
+                if (current.x === goal.x && current.y === goal.y) {
+                    if (!longestPath || path.length > longestPath.length) {
+                        longestPath = path;
+                    }
+                    continue;
+                }
+                
+                // Limit search depth to prevent infinite loops
+                if (path.length > BOARD_SIZE * 2) continue;
+                
+                const directions = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
+                for (const dir of directions) {
+                    const next = {
+                        x: wrapCoordinate(current.x + dir.x, BOARD_SIZE),
+                        y: wrapCoordinate(current.y + dir.y, BOARD_SIZE)
+                    };
+                    
+                    // Skip if obstacle or already in path
+                    if (obstacles.some(obs => obs.x === next.x && obs.y === next.y)) continue;
+                    if (path.some(p => p.x === next.x && p.y === next.y)) continue;
+                    
+                    queue.push([...path, next]);
+                }
+            }
+            
+            return longestPath ? longestPath.slice(1) : null;
+        }
+
+        // Convert position step to direction
+        function getDirectionFromStep(from, to) {
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            
+            // Handle wrapping
+            const wrappedDx = dx > 1 ? dx - BOARD_SIZE : (dx < -1 ? dx + BOARD_SIZE : dx);
+            const wrappedDy = dy > 1 ? dy - BOARD_SIZE : (dy < -1 ? dy + BOARD_SIZE : dy);
+            
+            if (wrappedDx === 1) return { ...DIRECTIONS.RIGHT, name: 'RIGHT' };
+            if (wrappedDx === -1) return { ...DIRECTIONS.LEFT, name: 'LEFT' };
+            if (wrappedDy === 1) return { ...DIRECTIONS.DOWN, name: 'DOWN' };
+            if (wrappedDy === -1) return { ...DIRECTIONS.UP, name: 'UP' };
+            
+            return { ...DIRECTIONS.RIGHT, name: 'RIGHT' }; // Fallback
+        }
+
+        // Visualize path on premove board
+        async function visualizePathOnPremoveBoard(path, type) {
+            if (!path || path.length === 0) return;
+            
+            syncPremoveBoard();
+            
+            // Show path with different colors based on type
+            const color = type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+            
+            for (let i = 0; i < path.length && i < 10; i++) {
+                const pos = path[i];
+                const opacity = 0.5 - (i / 20);
+                gameState.premoveBoard[pos.y][pos.x].style.backgroundColor = 
+                    type === 'success' 
+                        ? `rgba(16, 185, 129, ${opacity})` 
+                        : `rgba(245, 158, 11, ${opacity})`;
+            }
+            
+            await sleep(gameState.visualDelay * 2);
+        }
+
+        async function findHamiltonianMove() {
+            // Ensure Hamiltonian path is generated
+            if (gameState.hamiltonianPath.length === 0) {
+                generateHamiltonianCycle();
+            }
+
+            syncPremoveBoard();
+            updatePremoveStatus('Following Hamiltonian Cycle...');
+
+            // Find the snake's head position in the cycle
+            const head = gameState.actualSnake[0];
+            let headIndex = -1;
+            
+            for (let i = 0; i < gameState.hamiltonianPath.length; i++) {
+                const cell = gameState.hamiltonianPath[i];
+                if (cell.x === head.x && cell.y === head.y) {
+                    headIndex = i;
+                    break;
+                }
+            }
+
+            // If head not found in path, find closest cell
+            if (headIndex === -1) {
+                headIndex = 0;
+                let minDist = Infinity;
+                for (let i = 0; i < gameState.hamiltonianPath.length; i++) {
+                    const cell = gameState.hamiltonianPath[i];
+                    const dist = Math.abs(cell.x - head.x) + Math.abs(cell.y - head.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        headIndex = i;
+                    }
+                }
+            }
+
+            // Get next cell in the cycle
+            const nextIndex = (headIndex + 1) % gameState.hamiltonianPath.length;
+            const nextCell = gameState.hamiltonianPath[nextIndex];
+            
+            // Calculate the direction to move
+            const dx = nextCell.x - head.x;
+            const dy = nextCell.y - head.y;
+            
+            // Handle wrapping
+            const wrappedDx = dx > 1 ? dx - BOARD_SIZE : (dx < -1 ? dx + BOARD_SIZE : dx);
+            const wrappedDy = dy > 1 ? dy - BOARD_SIZE : (dy < -1 ? dy + BOARD_SIZE : dy);
+            
+            let direction;
+            if (wrappedDx === 1) direction = { ...DIRECTIONS.RIGHT, name: 'RIGHT' };
+            else if (wrappedDx === -1) direction = { ...DIRECTIONS.LEFT, name: 'LEFT' };
+            else if (wrappedDy === 1) direction = { ...DIRECTIONS.DOWN, name: 'DOWN' };
+            else if (wrappedDy === -1) direction = { ...DIRECTIONS.UP, name: 'UP' };
+            else direction = { ...DIRECTIONS.RIGHT, name: 'RIGHT' }; // Fallback
+
+            // Visualize the move and show path ahead
+            const state = {
+                snake: gameState.actualSnake.map(seg => ({ ...seg })),
+                direction: gameState.actualDirection,
+                fruit: { ...gameState.fruit }
+            };
+            
+            // Show next N cells in the path on premove board
+            syncPremoveBoard();
+            const pathPreviewLength = Math.min(20, gameState.hamiltonianPath.length);
+            for (let i = 1; i <= pathPreviewLength; i++) {
+                const idx = (headIndex + i) % gameState.hamiltonianPath.length;
+                const cell = gameState.hamiltonianPath[idx];
+                const cellElement = gameState.premoveBoard[cell.y][cell.x];
+                if (!cellElement.classList.contains('snake') && 
+                    !cellElement.classList.contains('fruit')) {
+                    cellElement.style.backgroundColor = `rgba(102, 126, 234, ${0.3 - (i / pathPreviewLength) * 0.25})`;
+                }
+            }
+            
+            await visualizeMove(state, direction);
+            updatePremoveStatus(`Following Hamiltonian Cycle (next: ${direction.name})`);
+            await sleep(gameState.visualDelay * 2);
+
+            return { success: true, movesToExecute: [direction] };
+        }
+
+        async function findOptimalMoveWithVisualization() {
+            gameState.premoveAttempts = 0;
+            syncPremoveBoard();
+            updatePremoveStatus('Starting simulation...');
+
+            // Try to find a valid path of EXACTLY the requested depth (or until fruit)
+            const result = await visualizeBacktracking(gameState.lookaheadDepth);
+
+            if (result.success && result.path.length > 0) {
+                // Flash success path
+                const pathLength = result.path.length;
+                const targetDepth = gameState.lookaheadDepth;
+                
+                if (result.ateFruit) {
+                    updatePremoveStatus(`Found fruit at depth ${pathLength}!`);
+                } else if (pathLength === targetDepth) {
+                    updatePremoveStatus(`Successfully premoved ${pathLength} steps!`);
+                } else {
+                    // This shouldn't happen with our fixed logic
+                    updatePremoveStatus(`Warning: Only found ${pathLength}/${targetDepth} steps`);
+                }
+                
+                await flashPath(result.path, 'success');
+                
+                // Return moves to execute
+                if (result.ateFruit) {
+                    // Execute all moves up to fruit
+                    return { success: true, movesToExecute: result.path };
+                } else {
+                    // Execute only the first move
+                    return { success: true, movesToExecute: [result.path[0]] };
+                }
+            }
+
+            // No path found at all - only use emergency move if truly trapped
+            updatePremoveStatus('No valid path - checking emergency moves...');
+            const emergencyMove = findEmergencyMove();
+            if (emergencyMove) {
+                updatePremoveStatus(`Emergency: Only 1 safe move (${emergencyMove.name})`);
+                // Visualize the emergency move
+                const state = {
+                    snake: gameState.actualSnake.map(seg => ({ ...seg })),
+                    direction: gameState.actualDirection,
+                    fruit: { ...gameState.fruit }
+                };
+                await visualizeMove(state, emergencyMove);
+                await flashPath([emergencyMove], 'success');
+                return { success: true, movesToExecute: [emergencyMove] };
+            }
+
+            updatePremoveStatus('TRAPPED - No valid moves!');
+            return { success: false, movesToExecute: [] };
+        }
+
+        async function visualizeBacktracking(targetDepth) {
+            const initialState = {
+                snake: gameState.actualSnake.map(seg => ({ ...seg })),
+                direction: gameState.actualDirection,
+                fruit: { ...gameState.fruit }
+            };
+
+            return await backtrackWithVisualization(initialState, [], targetDepth, 0);
+        }
+
+        async function backtrackWithVisualization(state, currentPath, remainingDepth, depth) {
+            gameState.currentDepth = depth;
+            updatePremoveInfo();
+
+            // Base case: Successfully reached target depth
+            if (remainingDepth === 0) {
+                updatePremoveStatus(`Reached depth ${gameState.lookaheadDepth}!`);
+                return { success: true, path: currentPath, ateFruit: false };
+            }
+
+            // Base case: Found fruit
+            if (currentPath.length > 0) {
+                const head = state.snake[0];
+                if (head.x === state.fruit.x && head.y === state.fruit.y) {
+                    return { success: true, path: currentPath, ateFruit: true };
+                }
+            }
+
+            // Get possible moves - these are already filtered for safety
+            let possibleMoves = getInstinctMoves(state);
+
+            // If no instinct moves available, try ANY safe move
+            if (possibleMoves.length === 0) {
+                // Get all directions except opposite
+                const allMoves = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+                    .filter(name => !state.direction || name !== state.direction.opposite)
+                    .map(name => ({ ...DIRECTIONS[name], name }));
+                
+                // Filter for safety (only check self-collision with wrapping)
+                possibleMoves = allMoves.filter(move => {
+                    const newHead = {
+                        x: wrapCoordinate(state.snake[0].x + move.x, BOARD_SIZE),
+                        y: wrapCoordinate(state.snake[0].y + move.y, BOARD_SIZE)
+                    };
+                    
+                    // Check self collision
+                    return !state.snake.some(seg => 
+                        seg.x === newHead.x && seg.y === newHead.y);
+                });
+            }
+
+            // If still no moves, we're trapped
+            if (possibleMoves.length === 0) {
+                updatePremoveStatus('No valid moves at depth ' + depth);
+                return { success: false, path: [], ateFruit: false };
+            }
+
+            // Try each move (all moves are pre-filtered and safe)
+            for (const move of possibleMoves) {
+                gameState.premoveAttempts++;
+                updatePremoveInfo();
+                updatePremoveStatus(`Depth ${depth + 1}/${gameState.lookaheadDepth}: Testing ${move.name}...`);
+
+                // Move is guaranteed safe since it's pre-filtered
+                await visualizeMove(state, move);
+
+                // Now simulate to get the new state
+                const simulation = simulateMove(move, state);
+
+                if (simulation.ateFruit) {
+                    updatePremoveStatus('Found fruit!');
+                    return { success: true, path: [...currentPath, move], ateFruit: true };
+                }
+
+                // Recursively try to complete the full depth
+                const result = await backtrackWithVisualization(
+                    simulation.newState,
+                    [...currentPath, move],
+                    remainingDepth - 1,
+                    depth + 1
+                );
+
+                if (result.success) {
+                    return result;
+                }
+
+                // Backtrack - this path didn't work for the full depth
+                updatePremoveStatus(`Backtracking from depth ${depth + 1}...`);
+                const backtrackDelay = Math.max(5, gameState.visualDelay / 2);
+                await sleep(backtrackDelay);
+                syncPremoveBoardToState(state);
+                await sleep(backtrackDelay);
+            }
+
+            // Couldn't find a path of the requested depth from this state
+            return { success: false, path: [], ateFruit: false };
+        }
+
+        async function visualizeMove(state, direction) {
+            // Clear previous visualization
+            syncPremoveBoardToState(state);
+
+            // Calculate new head position with wrapping
+            const newHead = {
+                x: wrapCoordinate(state.snake[0].x + direction.x, BOARD_SIZE),
+                y: wrapCoordinate(state.snake[0].y + direction.y, BOARD_SIZE)
+            };
+
+            // Always visualize (no bounds check needed with wrapping)
+            const newSnake = [newHead, ...state.snake];
+            const ateFruit = state.fruit && newHead.x === state.fruit.x && newHead.y === state.fruit.y;
+            
+            if (!ateFruit) {
+                newSnake.pop();
+            }
+
+            // Render new position
+            renderSnake(newSnake, gameState.premoveBoard);
+            
+            // Keep fruit visible
+            if (state.fruit && !ateFruit) {
+                gameState.premoveBoard[state.fruit.y][state.fruit.x].classList.add('fruit');
+                gameState.premoveBoard[state.fruit.y][state.fruit.x].textContent = '🍎';
+            }
+
+            // Brief pause for visualization - uses visual delay slider
+            await sleep(gameState.visualDelay);
+        }
+
+        function syncPremoveBoardToState(state) {
+            // Clear board
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    gameState.premoveBoard[y][x].className = 'cell';
+                    gameState.premoveBoard[y][x].textContent = '';
+                    gameState.premoveBoard[y][x].style.backgroundColor = ''; // Clear inline styles
+                }
+            }
+
+            // Render snake
+            renderSnake(state.snake, gameState.premoveBoard);
+
+            // Render fruit
+            if (state.fruit) {
+                gameState.premoveBoard[state.fruit.y][state.fruit.x].classList.add('fruit');
+                gameState.premoveBoard[state.fruit.y][state.fruit.x].textContent = '🍎';
+            }
+        }
+
+        async function flashPath(path, type) {
+            const simulatedState = {
+                snake: gameState.actualSnake.map(seg => ({ ...seg })),
+                direction: gameState.actualDirection,
+                fruit: { ...gameState.fruit }
+            };
+
+            const positions = [simulatedState.snake[0]];
+
+            // Calculate all positions in path with wrapping
+            for (const move of path) {
+                const lastPos = positions[positions.length - 1];
+            const newHead = {
+                    x: wrapCoordinate(lastPos.x + move.x, BOARD_SIZE),
+                    y: wrapCoordinate(lastPos.y + move.y, BOARD_SIZE)
+                };
+                positions.push(newHead);
+            }
+
+            // Flash all positions
+            const flashClass = type === 'success' ? 'flash-success' : 'flash-error';
+            for (const pos of positions) {
+                if (pos.x >= 0 && pos.x < BOARD_SIZE && pos.y >= 0 && pos.y < BOARD_SIZE) {
+                    gameState.premoveBoard[pos.y][pos.x].classList.add(flashClass);
+                }
+            }
+
+            const successFlashDelay = Math.max(100, gameState.visualDelay * 4);
+            await sleep(successFlashDelay);
+
+            // Remove flash
+            for (const pos of positions) {
+                if (pos.x >= 0 && pos.x < BOARD_SIZE && pos.y >= 0 && pos.y < BOARD_SIZE) {
+                    gameState.premoveBoard[pos.y][pos.x].classList.remove(flashClass);
+                }
+            }
+        }
+
+        async function flashCurrentPath(snake, type) {
+            const flashClass = type === 'success' ? 'flash-success' : 'flash-error';
+            
+            for (const segment of snake) {
+                gameState.premoveBoard[segment.y][segment.x].classList.add(flashClass);
+            }
+
+            await sleep(400);
+
+            for (const segment of snake) {
+                gameState.premoveBoard[segment.y][segment.x].classList.remove(flashClass);
+            }
+        }
+
+        async function flashDeadMove(state, direction) {
+            // Calculate where the head would go with wrapping
+            const head = state.snake[0];
+            const wouldBeHead = {
+                x: wrapCoordinate(head.x + direction.x, BOARD_SIZE),
+                y: wrapCoordinate(head.y + direction.y, BOARD_SIZE)
+            };
+
+            // Flash the current snake in error color
+            const flashClass = 'flash-error';
+            for (const segment of state.snake) {
+                gameState.premoveBoard[segment.y][segment.x].classList.add(flashClass);
+            }
+
+            // Flash the would-be position (always valid with wrapping)
+            gameState.premoveBoard[wouldBeHead.y][wouldBeHead.x].classList.add(flashClass);
+
+            const flashDelay = Math.max(50, gameState.visualDelay * 2);
+            await sleep(flashDelay);
+
+            // Remove flash
+            for (const segment of state.snake) {
+                gameState.premoveBoard[segment.y][segment.x].classList.remove(flashClass);
+            }
+            gameState.premoveBoard[wouldBeHead.y][wouldBeHead.x].classList.remove(flashClass);
+        }
+
+        async function executeMultipleMoves(moves) {
+            for (const move of moves) {
+                executeMove(move, gameState.actualSnake, gameState.actualBoard);
+                gameState.actualDirection = move;
+                renderSnake(gameState.actualSnake, gameState.actualBoard);
+                await sleep(100);
+            }
+        }
+
+        function executeMove(direction, snake, board) {
+            const head = snake[0];
+            // Wrap coordinates for toroidal topology
+            const newHead = {
+                x: wrapCoordinate(head.x + direction.x, BOARD_SIZE),
+                y: wrapCoordinate(head.y + direction.y, BOARD_SIZE)
+            };
+
+            // Check if fruit is eaten
+            const ateFruit = gameState.fruit && 
+                           newHead.x === gameState.fruit.x && 
+                           newHead.y === gameState.fruit.y;
+
+            // Move snake
+            snake.unshift(newHead);
+
+            if (ateFruit) {
+                gameState.score++;
+                updateScore();
+                // Clear old fruit visuals
+                board[gameState.fruit.y][gameState.fruit.x].classList.remove('fruit');
+                board[gameState.fruit.y][gameState.fruit.x].textContent = '';
+                spawnFruit();
+            } else {
+                // Remove tail
+                const tail = snake.pop();
+                if (tail && tail.y >= 0 && tail.y < BOARD_SIZE && 
+                    tail.x >= 0 && tail.x < BOARD_SIZE) {
+                    board[tail.y][tail.x].classList.remove('snake');
+                }
+            }
+
+            // Update visuals
+            renderSnake(snake, board);
+        }
+
+        function getInstinctMoves(state) {
+            const head = state.snake[0];
+            const fruit = state.fruit;
+            const currentDir = state.direction;
+
+            const priorityMoves = [];
+
+            // Priority: x-closer → y-closer → x-further → y-further
+
+            // x-closer
+            if (fruit.x < head.x) {
+                priorityMoves.push({ ...DIRECTIONS.LEFT, name: 'LEFT' });
+            } else if (fruit.x > head.x) {
+                priorityMoves.push({ ...DIRECTIONS.RIGHT, name: 'RIGHT' });
+            }
+
+            // y-closer
+            if (fruit.y < head.y) {
+                priorityMoves.push({ ...DIRECTIONS.UP, name: 'UP' });
+            } else if (fruit.y > head.y) {
+                priorityMoves.push({ ...DIRECTIONS.DOWN, name: 'DOWN' });
+            }
+
+            // x-further
+            if (fruit.x < head.x) {
+                priorityMoves.push({ ...DIRECTIONS.RIGHT, name: 'RIGHT' });
+            } else if (fruit.x > head.x) {
+                priorityMoves.push({ ...DIRECTIONS.LEFT, name: 'LEFT' });
+            }
+
+            // y-further
+            if (fruit.y < head.y) {
+                priorityMoves.push({ ...DIRECTIONS.DOWN, name: 'DOWN' });
+            } else if (fruit.y > head.y) {
+                priorityMoves.push({ ...DIRECTIONS.UP, name: 'UP' });
+            }
+
+            // Filter out impossible moves (opposite direction, duplicates, and death moves)
+            const validMoves = [];
+            const seen = new Set();
+            
+            for (const move of priorityMoves) {
+                // Skip if opposite direction
+                if (currentDir && move.name === currentDir.opposite) continue;
+                
+                // Skip if duplicate
+                if (seen.has(move.name)) continue;
+                
+                // Calculate new head position with wrapping
+                const newHead = {
+                    x: wrapCoordinate(head.x + move.x, BOARD_SIZE),
+                    y: wrapCoordinate(head.y + move.y, BOARD_SIZE)
+                };
+                
+                // Skip if would hit self (check against current snake body)
+                const wouldHitSelf = state.snake.some(segment => 
+                    segment.x === newHead.x && segment.y === newHead.y);
+                if (wouldHitSelf) {
+                    continue;
+                }
+                
+                // This move is valid
+                seen.add(move.name);
+                validMoves.push(move);
+            }
+
+            return validMoves;
+        }
+
+        function simulateMove(direction, state) {
+            const head = state.snake[0];
+            // Use wrapping for toroidal topology
+            const newHead = {
+                x: wrapCoordinate(head.x + direction.x, BOARD_SIZE),
+                y: wrapCoordinate(head.y + direction.y, BOARD_SIZE)
+            };
+
+            // Check self collision only (no wall collision with wrapping)
+            const isCollision = state.snake.some(seg => 
+                seg.x === newHead.x && seg.y === newHead.y);
+            if (isCollision) {
+                return { died: true, ateFruit: false, newState: null };
+            }
+
+            // Check fruit
+            const ateFruit = newHead.x === state.fruit.x && newHead.y === state.fruit.y;
+
+            // Create new state
+            const newSnake = [newHead, ...state.snake];
+            if (!ateFruit) {
+                newSnake.pop();
+            }
+
+            const newState = {
+                snake: newSnake,
+                direction: direction,
+                fruit: state.fruit
+            };
+
+            return { died: false, ateFruit, newState };
+        }
+
+        function findEmergencyMove() {
+            const state = {
+                snake: gameState.actualSnake.map(seg => ({ ...seg })),
+                direction: gameState.actualDirection,
+                fruit: { ...gameState.fruit }
+            };
+
+            // Try instinct moves first
+            const instinctMoves = getInstinctMoves(state);
+            for (const move of instinctMoves) {
+                const simulation = simulateMove(move, state);
+                if (!simulation.died) {
+                    return move;
+                }
+            }
+
+            // Try any valid move
+            const allMoves = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+                .filter(name => !state.direction || name !== state.direction.opposite)
+                .map(name => ({ ...DIRECTIONS[name], name }));
+
+            for (const move of allMoves) {
+                const simulation = simulateMove(move, state);
+                if (!simulation.died) {
+                    return move;
+                }
+            }
+
+            return null;
+        }
+
+        function endGame(victory) {
+            gameState.isRunning = false;
+            
+            if (gameInterval) {
+            clearInterval(gameInterval);
+            }
+
+            // Update high score
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('snakeHighScore', gameState.highScore);
+                updateHighScore();
+            }
+
+            // Show game over overlay
+            const overlay = document.getElementById('game-over-overlay');
+            const content = document.getElementById('game-over-content');
+            const title = document.getElementById('game-over-title');
+            const message = document.getElementById('game-over-message');
+
+            if (victory) {
+                content.classList.add('victory');
+                title.textContent = 'Victory!';
+                message.textContent = `Perfect Game! Score: ${gameState.score}`;
+                updateStatus('Victory!');
+            } else {
+                content.classList.remove('victory');
+                title.textContent = 'Game Over!';
+                message.textContent = `Final Score: ${gameState.score}`;
+                updateStatus('Game Over');
+            }
+
+            overlay.classList.add('show');
+
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
+        }
+
+        function restartGame() {
+            document.getElementById('game-over-overlay').classList.remove('show');
+            resetGame();
+            startGame();
+        }
+
+        function updateScore() {
+            document.getElementById('current-score').textContent = gameState.score;
+            document.getElementById('snake-length').textContent = gameState.actualSnake.length;
+        }
+
+        function updateHighScore() {
+            document.getElementById('high-score').textContent = gameState.highScore;
+        }
+
+        function updateStatus(status) {
+            document.getElementById('game-status').textContent = status;
+        }
+
+        function updatePremoveStatus(status) {
+            document.getElementById('premove-status').textContent = status;
+        }
+
+        function updatePremoveInfo() {
+            const info = `Depth: ${gameState.currentDepth} / Attempts: ${gameState.premoveAttempts}`;
+            document.getElementById('premove-info').textContent = info;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
