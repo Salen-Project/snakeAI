@@ -6,6 +6,14 @@ An advanced, unbeatable Snake game implementation featuring three sophisticated 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![AI Strategy](https://img.shields.io/badge/AI-Forward%20Checking%20%2B%20A*-red.svg)
 
+## 🎥 Demo
+
+Watch the AI in action! This video showcases all three strategies with real-time visualization:
+
+https://github.com/Salen-Project/snakeAI/assets/SnakeDemo.mov
+
+> **Note**: The left board shows AI thinking/pathfinding, while the right board shows actual gameplay.
+
 ## 🎮 Features
 
 - **Three AI Strategies**:
